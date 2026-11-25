@@ -2,3 +2,4 @@ venv/
 test_files/
 myvenv/
 .env
+local_memory_db/
