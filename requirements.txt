@@ -1,0 +1,7 @@
+ollama 
+lancedb 
+pymupdf 
+pillow 
+watchdog 
+streamlit
+rapidocr-onnxruntime
