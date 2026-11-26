@@ -1,15 +1,16 @@
 # Private Memory
 
-Private Memory is a local file-indexing and chat application for finding information in personal photos and PDFs. It extracts text and descriptions from files, stores them in a local SQLite database, and uses a local Ollama vision model to answer questions.
+Private Memory is a local file-indexing and chat application for finding information in personal files. It extracts text and descriptions from files, stores them in a local SQLite database, and uses a local Ollama vision model to answer questions.
 
 The application is intended to keep file processing and chat on the user's machine.
 
 ## Features
 
 - Watches `~/Desktop/TestMemoryFolder` for new files.
-- Indexes existing PNG, JPG, JPEG, and PDF files.
+- Indexes PNG, JPG, JPEG, PDF, TXT, Markdown (`.md`), and Word (`.docx`) files.
 - Uses RapidOCR for text extraction from images and scanned PDF pages.
 - Uses PyMuPDF to extract text from normal PDF pages.
+- Reads UTF-8 text and Markdown files directly, and extracts paragraphs and table cells from DOCX files.
 - Uses the local `qwen2.5vl:3b` Ollama vision model for image descriptions.
 - Stores file paths, types, summaries, and modification timestamps in SQLite.
 - Provides a Streamlit chat interface for searching indexed memories.
@@ -69,16 +70,15 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 2. Start the indexer:
 
    ```powershell
-   python indexer.py
+   .\myvenv\Scripts\python.exe .\indexer.py
    ```
 
    The indexer recursively processes existing files in the folder and continues watching for new files. Keep this terminal running.
 
-3. In a second terminal, activate the environment and start the chat application:
+3. In a second terminal, start the chat application with the project environment:
 
    ```powershell
-   .\myvenv\Scripts\Activate.ps1
-   streamlit run app.py
+   .\myvenv\Scripts\python.exe -m streamlit run .\app.py
    ```
 
 4. Open the Streamlit address displayed in the terminal, normally `http://localhost:8501`.
@@ -105,6 +105,12 @@ For `.pdf` files, the indexer uses PyMuPDF:
 2. Renders pages without extractable text as 120-DPI images.
 3. Runs OCR on those rendered pages.
 4. Combines all page content into one summary.
+
+### Indexing text and Word documents
+
+- `.txt` and `.md` files are read as UTF-8 text. UTF-8 byte-order marks are supported; undecodable bytes are replaced.
+- `.docx` files are read with `python-docx`. Paragraphs and table-cell text are stored in the indexed summary.
+- Legacy `.doc` files are not supported.
 
 ### Searching with the chat interface
 
@@ -163,7 +169,7 @@ The current indexer identifies files only by `file_path`, not by modification ti
 
 ### No text or description appears
 
-- Confirm that the file is `.png`, `.jpg`, `.jpeg`, or `.pdf`.
+- Confirm that the file is `.png`, `.jpg`, `.jpeg`, `.pdf`, `.txt`, `.md`, or `.docx`.
 - Confirm that the file can be opened by PyMuPDF or Pillow.
 - Check Ollama is running.
 - Read the error printed by `indexer.py`.

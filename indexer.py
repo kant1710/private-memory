@@ -4,10 +4,15 @@ import sqlite3
 import tempfile
 import pymupdf
 from PIL import Image
+from docx import Document
 from rapidocr_onnxruntime import RapidOCR
 import ollama
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
+TEXT_EXTENSIONS = {".txt", ".md"}
+SUPPORTED_EXTENSIONS = IMAGE_EXTENSIONS | TEXT_EXTENSIONS | {".pdf", ".docx"}
 
 # 1. Initialize built-in SQLite database
 conn = sqlite3.connect("memory.db", check_same_thread=False)
@@ -85,18 +90,41 @@ def analyze_pdf(pdf_path):
                     os.remove(tmp_path)
     return "\n".join(full_text)
 
+def analyze_text_file(file_path):
+    with open(file_path, "r", encoding="utf-8-sig", errors="replace") as file:
+        return file.read()
+
+def analyze_docx(file_path):
+    document = Document(file_path)
+    content = [paragraph.text for paragraph in document.paragraphs]
+    content.extend(
+        cell.text
+        for table in document.tables
+        for row in table.rows
+        for cell in row.cells
+    )
+    return "\n".join(text for text in content if text.strip())
+
 def index_file(file_path):
     abs_path = os.path.abspath(file_path)
     _, ext = os.path.splitext(abs_path)
     ext = ext.lower()
 
-    if ext not in [".png", ".jpg", ".jpeg", ".pdf"] or is_already_indexed(abs_path):
+    if ext not in SUPPORTED_EXTENSIONS or is_already_indexed(abs_path):
         return
 
     print(f"Indexing: {os.path.basename(abs_path)}...")
     start = time.time()
     try:
-        content = analyze_image(abs_path) if ext != ".pdf" else analyze_pdf(abs_path)
+        if ext in IMAGE_EXTENSIONS:
+            content = analyze_image(abs_path)
+        elif ext == ".pdf":
+            content = analyze_pdf(abs_path)
+        elif ext == ".docx":
+            content = analyze_docx(abs_path)
+        else:
+            content = analyze_text_file(abs_path)
+
         if not content.strip():
             print(f"Skipped (no readable text/content): {os.path.basename(abs_path)}")
             return

@@ -5,3 +5,4 @@ pillow
 watchdog 
 streamlit
 rapidocr-onnxruntime
+python-docx
